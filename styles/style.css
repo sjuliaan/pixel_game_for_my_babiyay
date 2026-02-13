@@ -1,0 +1,288 @@
+/* Import a Pixel Art Font */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body {
+    background-color: #202020;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Press Start 2P', cursive;
+}
+
+/* The Game Window */
+#game-screen {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    background-image: url('../assets/background.png');
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    /* Optional: A dark border around the whole game looks nice */
+    border: 4px solid #2a2a2a;
+}
+
+.pixel-sprite {
+    position: absolute;
+    image-rendering: pixelated;
+    pointer-events: none;
+    /* Let clicks pass through by default, checkInteraction handles logic */
+    z-index: 10;
+}
+
+/* The Menu Container - NOW TRANSPARENT */
+.rpg-ui-box {
+    position: absolute;
+    right: 40px;
+    /* Pushed to the right edge */
+    bottom: 40px;
+    /* Pushed to the bottom */
+    width: auto;
+    /* Width automatically fits the text */
+
+    /* Removed background-color, border, and box-shadow */
+    background-color: transparent;
+    border: none;
+    padding: 0;
+}
+
+.menu-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    /* Aligns text to the right side of the screen */
+    text-align: right;
+}
+
+/* Individual Menu Options */
+.menu-item {
+    /* COLOR MATCHING THE TITLE */
+    color: #fca044;
+    /* The Orange/Gold color */
+
+    /* This creates the thick dark brown outline/shadow like the title */
+    text-shadow:
+        2px 2px 0px #3b1e08,
+        -1px -1px 0 #3b1e08,
+        1px -1px 0 #3b1e08,
+        -1px 1px 0 #3b1e08,
+        1px 1px 0 #3b1e08;
+
+    padding: 12px 0;
+    /* Spacing between words */
+    cursor: pointer;
+    font-size: 20px;
+    /* Slightly smaller to fit better */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: transform 0.1s;
+}
+
+/* Hover Effect */
+.menu-item:hover {
+    /* When you hover, it pops up slightly and turns lighter */
+    transform: scale(1.1) translateX(-10px);
+    /* Moves slightly left */
+    color: #ffeaa7;
+    /* Lighter yellow on hover */
+}
+
+/* The "Hand" or "Arrow" cursor */
+.menu-item:hover::after {
+    content: '◀';
+    /* Arrow on the right side pointing left */
+    margin-left: 10px;
+    color: #ffeaa7;
+    text-shadow: 2px 2px 0px #3b1e08;
+    animation: blink 0.8s infinite;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* --- NEW STYLES --- */
+
+/* The Leash Placeholder (Red Box until you get the image) */
+/* style.css */
+
+#leash-item {
+    /* REMOVED background-color: red; */
+    background-color: transparent;
+    z-index: 5;
+}
+
+/* Interaction Prompt (Floating "Press E") */
+.rpg-ui-label {
+    position: absolute;
+    display: none;
+    /* Hidden by default */
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    z-index: 100;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+}
+
+/* Dialogue Box Styling */
+#dialogue-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 100px;
+    background-color: #fff;
+    border: 4px solid #3b1e08;
+    border-radius: 8px;
+    box-shadow: 0 4px 0 #2a1505;
+    padding: 15px;
+    box-sizing: border-box;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+}
+
+#dialogue-text {
+    color: #3b1e08;
+    font-size: 14px;
+    line-height: 1.5;
+    font-family: 'Press Start 2P', cursive;
+}
+
+#dialogue-arrow {
+    position: absolute;
+    bottom: 10px;
+    right: 15px;
+    color: #fca044;
+    font-size: 20px;
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(5px);
+    }
+}
+
+/* Add this to the bottom of style.css */
+
+#instruction-box {
+    position: absolute;
+    bottom: 20px;
+    /* Positioned at bottom like a subtitle */
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 12px;
+    text-align: center;
+    border: 2px solid #fca044;
+    z-index: 300;
+    /* Above everything */
+    display: none;
+    /* Hidden by default */
+}
+
+/* Add this inside style.css */
+
+#house-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Ensures the image fills the box */
+    image-rendering: pixelated;
+    /* Keeps it looking retro */
+}
+
+/* Meowdom Atmosphere */
+.meowdom-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background-color: #ffd7e6;
+    /* Pinkish petal color */
+    border-radius: 50% 0 50% 0;
+    pointer-events: none;
+    z-index: 1000;
+    animation: floatDown 4s linear infinite;
+    opacity: 0.8;
+}
+
+@keyframes floatDown {
+    0% {
+        transform: translateY(-10px) translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: translateY(600px) translateX(100px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+#meowdom-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255, 192, 203, 0.1) 0%, rgba(255, 105, 180, 0.2) 100%);
+    pointer-events: none;
+    z-index: 200;
+    display: none;
+    mix-blend-mode: screen;
+}
+
+.glowing-flower {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background-color: #ff69b4;
+    /* Fallback */
+    border-radius: 50%;
+    box-shadow: 0 0 10px #ff1493, 0 0 20px #ff69b4;
+    animation: pulseGlow 2s infinite alternate;
+    z-index: 5;
+}
+
+@keyframes pulseGlow {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 10px #ff1493;
+    }
+
+    100% {
+        transform: scale(1.2);
+        box-shadow: 0 0 20px #ff69b4, 0 0 30px #ff1493;
+    }
+}

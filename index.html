@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jasmine and Chippoy's Adventure</title>
+    <link rel="stylesheet" href="styles/style.css">
+</head>
+
+<body>
+
+    <!-- The Main Game Container -->
+    <div id="game-screen">
+
+        <!-- The Menu Box (Positioned where your blue box was) -->
+        <div id="main-menu" class="rpg-ui-box">
+            <ul class="menu-list">
+                <!-- Added 'active' class to the first item for keyboard navigation logic later -->
+                <li class="menu-item active" onclick="startGame()">New Game</li>
+                <li class="menu-item" onclick="continueGame()">Continue</li>
+                <li class="menu-item" onclick="exitGame()">Exit</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <script src="scripts/script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adventure - Jasmine and Chippoy</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <link rel="stylesheet" href="styles/inventory.css">
+    <link rel="stylesheet" href="styles/bark.css">
+    <link rel="stylesheet" href="styles/scent.css">
+    <style>
+        .reunion-heart {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="%23ff6b6b" d="M462.3 62.6C407.5 15.9 326 24.3 275.7 76.2L256 96.5l-19.7-20.3C186.1 24.3 104.5 15.9 49.7 62.6c-62.8 53.6-66.1 149.8-9.9 207.9l193.5 199.8c12.5 12.9 32.8 12.9 45.3 0l193.5-199.8c56.3-58.1 53-154.3-9.8-207.9z"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            z-index: 100000;
+            animation: heart-float 2s ease-out forwards;
+        }
+
+        @keyframes heart-float {
+            0% {
+                transform: translateY(0) scale(0.5);
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100px) scale(1.5);
+                opacity: 0;
+            }
+        }
+    </style>
+    <script src="scripts/audio.js"></script>
+    <style>
+        body {
+            background-color: #202020;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #game-screen {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #000;
+            background-image: none !important;
+            overflow: hidden;
+            border: 4px solid #2a2a2a;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        /* SHARED STYLES FOR SPRITES */
+        .pixel-sprite {
+            position: absolute;
+            z-index: 10;
+            image-rendering: pixelated;
+            transform-origin: top left;
+        }
+
+        #world-map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            image-rendering: pixelated;
+        }
+
+        #house-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            image-rendering: pixelated;
+        }
+
+        /* NEW SCENE BACKGROUND */
+        #zootopia-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            image-rendering: pixelated;
+            display: none;
+            /* Hidden by default */
+        }
+
+        /* Forest Map - Single Large Image */
+        #forest-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            image-rendering: pixelated;
+            display: none;
+        }
+
+        /* Forest Vignette to make it feel closed in */
+        #forest-vignette {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 20%, rgba(0, 0, 0, 0.4) 100%);
+            z-index: 500;
+            display: none;
+        }
+
+        /* Jungle Map Background */
+        #jungle-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            image-rendering: pixelated;
+            display: none;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* INVENTORY STYLES - REIMAGINED */
+        #armor-inventory,
+        #feeding-interface {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 700px;
+            height: 480px;
+            background: rgba(40, 30, 30, 0.85);
+            /* Darker, sleek base */
+            backdrop-filter: blur(10px);
+            /* Glassmorphism */
+            border: 6px solid #fca044;
+            /* Match the gold theme */
+            border-radius: 4px;
+            /* Slight round for modern look */
+            z-index: 20000;
+            font-family: 'Press Start 2P', cursive;
+            /* Use the retro font */
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8), inset 0 0 15px rgba(252, 160, 68, 0.2);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            image-rendering: auto;
+            /* Smoother scaling for UI */
+            color: #fff;
+        }
+
+        .inventory-title {
+            text-align: center;
+            font-size: 20px;
+            color: #fca044;
+            margin-bottom: 24px;
+            padding-bottom: 12px;
+            border-bottom: 4px dotted rgba(252, 160, 68, 0.3);
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 0 #3b1e08;
+        }
+
+        #close-inventory-btn,
+        #close-feeding-btn {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 40px;
+            height: 40px;
+            background: #ff4444;
+            color: white;
+            border: 4px solid #fff;
+            border-radius: 50%;
+            font-family: inherit;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #close-inventory-btn:hover,
+        #close-feeding-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            background: #ff6666;
+        }
+
+        .inventory-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            flex-grow: 1;
+            gap: 20px;
+        }
+
+        .inventory-section {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            /* Very subtle background */
+            border: 2px solid rgba(252, 160, 68, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+        }
+
+        .section-label {
+            font-size: 10px;
+            color: #ccc;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 4px 10px;
+            border-radius: 10px;
+        }
+
+        .item-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .inventory-item {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .inventory-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #fca044;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(252, 160, 68, 0.3);
+        }
+
+        .inventory-item:active {
+            cursor: grabbing;
+        }
+
+        .inventory-item img {
+            width: 56px;
+            height: 56px;
+            image-rendering: pixelated;
+        }
+
+        .inventory-arrow {
+            display: flex;
+            align-items: center;
+            font-size: 32px;
+            color: #fca044;
+            opacity: 0.6;
+        }
+
+        .equipment-slots {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .slot {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px dashed rgba(252, 160, 68, 0.4);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s;
+            min-height: 100px;
+        }
+
+        .slot.drag-over {
+            background: rgba(252, 160, 68, 0.2);
+            border-style: solid;
+            transform: scale(1.05);
+        }
+
+        .slot img {
+            width: 72px;
+            height: 72px;
+            image-rendering: pixelated;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+        }
+
+        .slot-label {
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 8px;
+            color: #aaa;
+            letter-spacing: 1px;
+        }
+
+        #inventory-message,
+        #feeding-message {
+            text-align: center;
+            margin-top: 16px;
+            color: #fca044;
+            font-size: 10px;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        /* Feeding specific overrides */
+        #chippoy-feed-zone {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slot.equipped {
+            background: rgba(46, 204, 113, 0.2);
+            /* Success green */
+            border-style: solid;
+            border-color: #2ecc71;
+            box-shadow: inset 0 0 10px rgba(46, 204, 113, 0.3);
+        }
+
+        .slot.feed-success {
+            animation: feed-pop 0.5s ease-out;
+            background: rgba(46, 204, 113, 0.4) !important;
+            border-color: #2ecc71 !important;
+        }
+
+        @keyframes feed-pop {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+                box-shadow: 0 0 20px #2ecc71;
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-screen">
+        <!-- 1. Backgrounds -->
+        <img id="world-map" src="assets/game_map.gif" alt="World Map">
+        <img id="house-bg" src="assets/house_interior.png" alt="House Interior" style="display:none;">
+
+        <!-- NEW: Zootopia Background -->
+        <img id="zootopia-bg" src="assets/zootopia.png" alt="Zootopia Scene">
+
+        <!-- NEW: Forest Background (Div for tiling) -->
+        <div id="forest-bg"></div>
+        <div id="forest-vignette"></div>
+
+        <!-- NEW: Jungle Background -->
+        <img id="jungle-bg" src="assets/jungle_map.png" alt="Jungle Map" style="display:none;">
+
+        <!-- NEW: Meowdom Background -->
+        <img id="meowdom-bg" src="assets/meowdom.png" alt="Meowdom Scene"
+            style="display:none; position:absolute; top:0; left:0; z-index:1; image-rendering:pixelated;">
+
+        <!-- NEW: Picnic Background -->
+        <img id="picnic-bg" src="assets/picnic.png" alt="Picnic Scene"
+            style="display:none; position:absolute; top:0; left:0; z-index:1; image-rendering:pixelated;">
+
+        <!-- 2. Items -->
+        <img id="leash-item" class="pixel-sprite" src="assets/leash.png" style="display:none;">
+        <img id="shirt-item" class="pixel-sprite" src="assets/shirt.png" style="display:none;">
+        <img id="vest-item" class="pixel-sprite" src="assets/vest.png" style="display:none;">
+
+        <!-- Cat Food Item (kept in code just in case, but logic changed) -->
+        <img id="food-item" class="pixel-sprite" src="assets/catfood.png" style="display:none;">
+
+        <!-- 3. Characters -->
+        <img id="player-sprite" class="pixel-sprite" src="assets/jasmine_idle_down.gif">
+        <img id="chippoy-sprite" class="pixel-sprite" src="assets/chippoy_idle_down.gif">
+
+        <!-- Guard NPC -->
+        <img id="guard-npc" class="pixel-sprite" src="assets/guard.png" style="display:none;">
+
+        <!-- NEW: Guard Dog NPC -->
+        <img id="guard-dog-npc" class="pixel-sprite" src="assets/guard_dog.png" style="display:none;">
+
+        <!-- NEW: Wife NPC -->
+        <img id="wife-npc" class="pixel-sprite" src="assets/wife.png" style="display:none;">
+        <img id="guard-wife-npc" class="pixel-sprite" src="assets/guard_wife.png" style="display:none;">
+
+        <!-- NEW ITEMS -->
+        <img id="water-item" class="pixel-sprite" src="assets/water.png" style="display:none;">
+        <img id="veggies-item" class="pixel-sprite" src="assets/veggies.png" style="display:none;">
+        <img id="powerup-item" class="pixel-sprite" src="assets/powerup.png" style="display:none;">
+        <img id="zootopia-portal" class="pixel-sprite portal-animation" src="assets/portal.png" style="display:none;">
+        <div id="zootopia-portal-effect" class="pixel-sprite portal-effect" style="display:none;"></div>
+
+        <!-- Boyfriend NPC -->
+        <img id="boyfriend-npc" class="pixel-sprite" src="assets/seth.png" style="display:none;">
+
+        <!-- World Chat Bubbles -->
+        <div id="jasmine-world-bubble" class="world-bubble" style="display:none;">
+            <div class="chat-head" style="background-image: url('assets/jasmine_idle_down.gif');"></div>
+            <div class="bubble-text"></div>
+        </div>
+        <div id="seth-world-bubble" class="world-bubble" style="display:none;">
+            <div class="chat-head" style="background-image: url('assets/seth.png');"></div>
+            <div class="bubble-text"></div>
+        </div>
+        <div id="bobby-world-bubble" class="world-bubble" style="display:none;">
+            <div class="chat-head" style="background-image: url('assets/bobby.png');"></div>
+            <div class="bubble-text"></div>
+        </div>
+        <div id="chippoy-world-bubble" class="world-bubble" style="display:none;">
+            <div class="chat-head" style="background-image: url('assets/chippoy_idle_down.gif');"></div>
+            <div class="bubble-text"></div>
+        </div>
+
+        <!-- 4. UI -->
+        <div id="interaction-prompt" class="rpg-ui-label">Press E</div>
+
+        <!-- ARMOR INVENTORY UI -->
+        <div id="armor-inventory" style="display: none;">
+            <div class="inventory-title">CHIPPOY'S ARMOR</div>
+            <button id="close-inventory-btn">X</button>
+            <div class="inventory-content">
+                <div class="inventory-section">
+                    <div class="section-label">JASMINE'S BAG</div>
+                    <div id="jasmine-bag" class="item-container"></div>
+                </div>
+                <div class="inventory-arrow">➔</div>
+                <div class="inventory-section">
+                    <div class="section-label">EQUIPMENT</div>
+                    <div id="chippoy-slots" class="equipment-slots">
+                        <div class="slot" data-type="leash">
+                            <div class="slot-label">LEASH</div>
+                        </div>
+                        <div class="slot" data-type="shirt">
+                            <div class="slot-label">SHIRT</div>
+                        </div>
+                        <div class="slot" data-type="vest">
+                            <div class="slot-label">VEST</div>
+                        </div>
+                        <div class="slot" data-type="powerup">
+                            <div class="slot-label">POWER</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="inventory-message">Drag items to Chippoy's slots!</div>
+        </div>
+
+        <!-- FEEDING INTERFACE UI -->
+        <div id="feeding-interface" style="display: none;">
+            <div class="inventory-title">FEED CHIPPOY</div>
+            <button id="close-feeding-btn">X</button>
+            <div class="inventory-content">
+                <div class="inventory-section">
+                    <div class="section-label">YOUR ITEMS</div>
+                    <div id="feeding-bag" class="item-container"></div>
+                </div>
+                <div class="inventory-arrow">➔</div>
+                <div class="inventory-section">
+                    <div class="section-label">CHIPPOY</div>
+                    <div id="chippoy-feed-zone" class="slot">
+                        <img src="assets/chippoy_idle_down.gif">
+                        <div class="slot-label">DRAG FOOD HERE</div>
+                    </div>
+                    <div id="feeding-message">Help Chippoy recover!</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reunion Video Overlay -->
+        <div id="video-overlay"
+            style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:100000; flex-direction: column; align-items: center; justify-content: center;">
+            <video id="reunion-video" style="max-width:100%; max-height:100%; display:none;">
+                <source src="assets/reunion.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <video id="portal-transition-video" style="max-width:100%; max-height:100%; display:none;">
+                <source src="assets/teleportToPortal.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div id="skip-video"
+                style="position:absolute; bottom:20px; right:20px; color:white; font-family:'Press Start 2P', cursive; font-size:12px; cursor:pointer; background:rgba(255,154,158,0.3); padding:10px; border:2px solid #fff; z-index:100001;">
+                [PRESS S TO SKIP]</div>
+        </div>
+
+        <!-- NEW: BATTLE INTERFACE (MISCRIT STYLE) -->
+        <div id="battle-interface" style="display: none;">
+            <div class="battle-header">
+                <div class="battle-unit" id="enemy-unit">
+                    <div class="unit-name" id="enemy-name">Enemy Name</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar-fill" id="enemy-hp-fill"></div>
+                    </div>
+                    <div class="hp-text" id="enemy-hp-text">100/100</div>
+                </div>
+                <div class="battle-v-s">VS</div>
+                <div class="battle-unit" id="player-unit">
+                    <div class="unit-name">Chippoy</div>
+                    <div class="hp-bar-container">
+                        <div class="hp-bar-fill" id="player-hp-fill"></div>
+                    </div>
+                    <div class="hp-text" id="player-hp-text">100/100</div>
+                </div>
+            </div>
+
+            <div class="battle-stage">
+                <!-- Battle Background Placeholder -->
+                <div id="battle-background"></div>
+
+                <div id="battle-enemy-sprite" class="battle-sprite">
+                    <div id="sibling-bubble" class="bubble-chat" style="display:none;"></div>
+                </div>
+                <div id="battle-player-sprite" class="battle-sprite">
+                    <div id="chippoy-bubble" class="bubble-chat" style="display:none;"></div>
+                    <div id="chippoy-aura" class="charge-aura" style="display:none;"></div>
+                </div>
+                <div id="battle-light-sprite" class="battle-sprite" style="display:none;">
+                    <div id="light-bubble" class="bubble-chat" style="display:none;"></div>
+                    <div id="light-aura" class="charge-aura" style="display:none;"></div>
+                </div>
+            </div>
+
+            <div class="battle-footer" style="height: 200px; background: #222;">
+                <div id="battle-log" class="battle-log">A wild creature appears!</div>
+                <div class="battle-controls"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 360px;">
+                    <button class="battle-btn" onclick="executeBattleAction('teamup')" id="call-light-btn"
+                        style="display:none; background: #ffd700; color: #000; font-weight: bold; grid-column: span 2; border: 4px solid gold; animation: button-pulse 1s infinite alternate;">✨
+                        CALL LIGHT! ✨</button>
+                    <button id="attack-btn" class="battle-btn" onclick="executeBattleAction('attack')">BITE</button>
+                    <button id="paw-btn" class="battle-btn" onclick="executeBattleAction('paw')">PAW STRIKE</button>
+                    <button id="tail-btn" class="battle-btn" onclick="executeBattleAction('tail')"
+                        style="background:#87ceeb;">TAIL WAG</button>
+                    <button class="battle-btn" onclick="executeBattleAction('heal')" id="heal-btn"
+                        style="display:none; background: #90ee90;">HEAL</button>
+                    <button class="battle-btn" onclick="executeBattleAction('powerup')" id="powerup-btn"
+                        style="display:none; background: #ffa500;">POWER UP</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: JUNGLE LOOT POPUP -->
+        <div id="loot-popup" class="inventory-title"
+            style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); z-index:50000; background:#fff; padding:20px; border:8px solid #5a3e3e;">
+            <div id="loot-text">You found: Items!</div>
+            <button onclick="closeLoot()" style="margin-top:20px;">AWESOME!</button>
+        </div>
+
+        <style>
+            #battle-interface {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image: url('assets/arena.png');
+                background-size: cover;
+                background-position: center;
+                z-index: 40000;
+                display: flex;
+                flex-direction: column;
+                font-family: 'Press Start 2P', cursive;
+                image-rendering: pixelated;
+                color: white;
+                padding: 20px;
+                box-sizing: border-box;
+            }
+
+            .battle-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                height: 100px;
+            }
+
+            .battle-unit {
+                width: 250px;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 10px;
+                border: 4px solid #fff;
+            }
+
+            .unit-name {
+                font-size: 10px;
+                margin-bottom: 10px;
+                text-transform: uppercase;
+            }
+
+            .hp-bar-container {
+                width: 200px;
+                height: 15px;
+                background: #444;
+                border: 2px solid #fff;
+            }
+
+            .hp-bar-fill {
+                width: 100%;
+                height: 100%;
+                background: #00ff00;
+                transition: width 0.3s ease;
+            }
+
+            .hp-text {
+                font-size: 8px;
+                margin-top: 5px;
+                text-align: right;
+            }
+
+            .battle-v-s {
+                font-size: 24px;
+                color: #ff0000;
+                text-shadow: 2px 2px #000;
+            }
+
+            .battle-stage {
+                flex-grow: 1;
+                display: flex;
+                justify-content: space-around;
+                align-items: flex-end;
+                /* Lower them down */
+                position: relative;
+                padding: 150px;
+                padding-bottom: 200px;
+                /* Push them up slightly from the very bottom log */
+                overflow: visible;
+                /* Allow bubbles to peak out if needed */
+            }
+
+            /* BATTLE BACKGROUND NO LONGER NEEDED HERE */
+            #battle-background {
+                display: none;
+            }
+
+            .battle-sprite {
+                position: absolute;
+                width: 180px;
+                height: 180px;
+                background-size: contain;
+                background-repeat: no-repeat;
+                background-position: center;
+                filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
+                z-index: 5;
+            }
+
+            #battle-enemy-sprite {
+                bottom: 50px;
+                /* Adjust this to move the Enemy UP or DOWN */
+                left: 180px;
+                /* Moved further from edge to prevent bubble clipping */
+                /* Adjust this to move the Enemy LEFT or RIGHT */
+            }
+
+            #battle-player-sprite {
+                bottom: 10px;
+                /* Adjust this to move Chippoy UP or DOWN */
+                right: 180px;
+                /* Adjust this to move Chippoy LEFT or RIGHT */
+                background-image: url('assets/chippoy_idle_left.gif');
+            }
+
+            #battle-light-sprite {
+                bottom: 10px;
+                right: 320px;
+                /* Positioned next to Chippoy */
+                background-image: url('assets/light.png');
+                display: none;
+            }
+
+            .battle-footer {
+                height: 160px;
+                /* Rigid height */
+                background: rgba(0, 0, 0, 0.9);
+                border: 4px solid #fff;
+                display: flex;
+                padding: 15px;
+                gap: 20px;
+                box-sizing: border-box;
+                /* Prevents padding from increasing height */
+                flex-shrink: 0;
+                /* Ensures it doesn't get squeezed */
+            }
+
+            .battle-log {
+                flex: 1;
+                /* Take up all available space */
+                background: #111;
+                border: 2px solid #555;
+                padding: 10px;
+                font-size: 10px;
+                line-height: 1.5;
+                overflow-y: auto;
+                /* Enable scrolling */
+                box-sizing: border-box;
+                height: 100%;
+                /* Force it to stay within the footer */
+            }
+
+            .battle-controls {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                width: 320px;
+                padding: 10px;
+                background: rgba(0, 0, 0, 0.1);
+                border-left: 2px solid #5a3e3e;
+            }
+
+            .battle-btn {
+                width: 100%;
+                height: 40px;
+                background: #5a3e3e;
+                color: white;
+                border: 4px solid #fff;
+                padding: 5px;
+                font-family: inherit;
+                font-size: 9px;
+                cursor: pointer;
+                margin: 0;
+            }
+
+            .battle-btn:hover {
+                background: #7a5e5e;
+            }
+
+            /* BITE EFFECT */
+            .bite-effect {
+                position: absolute;
+                width: 100px;
+                height: 100px;
+                pointer-events: none;
+                z-index: 50000;
+                background-image:
+                    radial-gradient(ellipse at 50% 50%, transparent 40%, #ff0000 42%, #ff0000 50%, transparent 52%),
+                    linear-gradient(45deg, transparent 40%, white 45%, white 55%, transparent 60%),
+                    linear-gradient(-45deg, transparent 40%, white 45%, white 55%, transparent 60%);
+                animation: bite-crunch 0.4s ease-out forwards;
+                opacity: 0;
+            }
+
+            @keyframes bite-crunch {
+                0% {
+                    transform: scale(2);
+                    opacity: 1;
+                }
+
+                50% {
+                    transform: scale(0.8);
+                    opacity: 1;
+                    filter: brightness(2) contrast(2);
+                }
+
+                100% {
+                    transform: scale(1);
+                    opacity: 0;
+                }
+            }
+
+            /* POWERUP PICKUP EFFECT */
+            .pickup-effect {
+                position: absolute;
+                pointer-events: none;
+                z-index: 1000;
+                animation: pickup-float 1.5s ease-out forwards;
+                image-rendering: pixelated;
+            }
+
+            @keyframes pickup-float {
+                0% {
+                    transform: translate(-50%, -50%) scale(1);
+                    opacity: 1;
+                    filter: brightness(1);
+                }
+
+                50% {
+                    transform: translate(-50%, -150%) scale(2);
+                    opacity: 1;
+                    filter: brightness(2) drop-shadow(0 0 10px gold);
+                }
+
+                100% {
+                    transform: translate(-50%, -250%) scale(1.5);
+                    opacity: 0;
+                    filter: brightness(3);
+                }
+            }
+
+            .glow-animation {
+                animation: power-glow 2s infinite alternate;
+            }
+
+            @keyframes power-glow {
+                from {
+                    filter: drop-shadow(0 0 5px orange);
+                }
+
+                to {
+                    filter: drop-shadow(0 0 20px yellow) brightness(1.2);
+                }
+            }
+
+            .bubble-chat {
+                position: absolute;
+                top: -100px;
+                /* Higher up to avoid overlap */
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                border: 4px solid #000;
+                padding: 10px 15px;
+                font-family: 'Press Start 2P', cursive;
+                font-size: 10px;
+                color: black;
+                white-space: normal;
+                /* Allow wrapping */
+                width: 250px;
+                /* Fixed width for consistency */
+                text-align: center;
+                z-index: 1000;
+                pointer-events: none;
+                box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+                animation: bubble-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            }
+
+            @keyframes bubble-pop {
+                0% {
+                    transform: translateX(-50%) scale(0);
+                    opacity: 0;
+                }
+
+                100% {
+                    transform: translateX(-50%) scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .bubble-chat::after {
+                content: '';
+                position: absolute;
+                bottom: -15px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 8px;
+                border-style: solid;
+                border-color: white transparent transparent transparent;
+            }
+
+            .slap-effect {
+                position: absolute;
+                width: 100px;
+                height: 100px;
+                background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M20,50 Q50,20 80,50 T50,80 Q20,50 50,20" fill="none" stroke="red" stroke-width="8" stroke-linecap="round"/></svg>');
+                background-size: contain;
+                pointer-events: none;
+                z-index: 10001;
+                animation: slap-anim 0.3s ease-out forwards;
+            }
+
+            @keyframes slap-anim {
+                0% {
+                    transform: scale(0) rotate(-45deg);
+                    opacity: 1;
+                }
+
+                50% {
+                    transform: scale(1.5) rotate(0deg);
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: scale(1.2) rotate(45deg);
+                    opacity: 0;
+                }
+            }
+
+            .enhanced-bite {
+                position: absolute;
+                width: 160px;
+                height: 160px;
+                background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M0,45 L20,10 L40,45 L60,10 L80,45 L100,10 L100,0 L0,0 Z" fill="%23ffcccc" stroke="red" stroke-width="4"/><path d="M0,55 L20,90 L40,55 L60,90 L80,55 L100,90 L100,100 L0,100 Z" fill="%23ffcccc" stroke="red" stroke-width="4"/></svg>');
+                background-size: contain;
+                pointer-events: none;
+                z-index: 10001;
+                filter: drop-shadow(0 0 20px red);
+                animation: jaw-snap 0.35s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+            }
+
+            @keyframes portal-swirl {
+                0% {
+                    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+                    opacity: 0.8;
+                }
+
+                50% {
+                    transform: translate(-50%, -50%) rotate(180deg) scale(1.1);
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: translate(-50%, -50%) rotate(360deg) scale(1);
+                    opacity: 0.8;
+                }
+            }
+
+            @keyframes jaw-snap {
+                0% {
+                    transform: scaleY(1.8);
+                    opacity: 0;
+                }
+
+                40% {
+                    transform: scaleY(0.6);
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: scaleY(0.4);
+                    opacity: 0;
+                }
+            }
+
+            @keyframes button-pulse {
+                from {
+                    transform: scale(1);
+                    box-shadow: 0 0 5px gold;
+                }
+
+                to {
+                    transform: scale(1.05);
+                    box-shadow: 0 0 20px gold;
+                }
+            }
+
+            .claw-effect {
+                position: absolute;
+                width: 120px;
+                height: 120px;
+                background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M15,15 L85,85 M85,15 L15,85" stroke="red" stroke-width="15" stroke-linecap="round" opacity="0.9"/></svg>');
+                background-size: contain;
+                animation: x-slash 0.35s ease-out forwards;
+            }
+
+            @keyframes x-slash {
+                0% {
+                    transform: scale(0.2) rotate(-90deg);
+                    opacity: 0;
+                }
+
+                50% {
+                    transform: scale(1.2) rotate(0deg);
+                    opacity: 1;
+                    filter: brightness(2);
+                }
+
+                100% {
+                    transform: scale(1.5) rotate(45deg);
+                    opacity: 0;
+                }
+            }
+
+            .sparkle-effect {
+                position: absolute;
+                width: 60px;
+                height: 60px;
+                background: radial-gradient(circle, gold 0%, transparent 70%);
+                filter: blur(5px);
+                animation: sparkle-anim 0.5s ease-out forwards;
+            }
+
+            @keyframes sparkle-anim {
+                0% {
+                    transform: scale(0);
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+
+            .power-up-active {
+                filter: drop-shadow(0 0 15px orange) brightness(1.3);
+                transition: filter 0.5s;
+            }
+
+            .bubbling-power {
+                position: absolute;
+                bottom: -10px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%;
+                height: 20px;
+                background: radial-gradient(ellipse at center, rgba(255, 165, 0, 0.4) 0%, transparent 70%);
+                animation: float-up 1s infinite;
+            }
+
+            @keyframes float-up {
+                0% {
+                    transform: translateX(-50%) translateY(0);
+                    opacity: 1;
+                }
+
+                100% {
+                    transform: translateX(-50%) translateY(-20px);
+                    opacity: 0;
+                }
+            }
+
+            .chippoy-bubble {
+                position: absolute;
+                bottom: 180px;
+                /* Position above Chippoy */
+                right: 180px;
+                transform: translateX(50%);
+                /* Adjust for centering relative to Chippoy */
+                background: white;
+                border: 4px solid #000;
+                padding: 8px 12px;
+                font-family: 'Press Start 2P', cursive;
+                font-size: 10px;
+                color: black;
+                white-space: nowrap;
+                z-index: 1000;
+                pointer-events: none;
+                animation: bubble-fade-in 0.3s ease-out forwards;
+            }
+
+            .chippoy-bubble::after {
+                content: '';
+                position: absolute;
+                bottom: -15px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 8px;
+                border-style: solid;
+                border-color: white transparent transparent transparent;
+            }
+
+            .light-bubble {
+                position: absolute;
+                bottom: 180px;
+                /* Position above Light */
+                right: 320px;
+                transform: translateX(50%);
+                /* Adjust for centering relative to Light */
+                background: white;
+                border: 4px solid #000;
+                padding: 8px 12px;
+                font-family: 'Press Start 2P', cursive;
+                font-size: 10px;
+                color: black;
+                white-space: nowrap;
+                z-index: 1000;
+                pointer-events: none;
+                animation: bubble-fade-in 0.3s ease-out forwards;
+            }
+
+            .light-bubble::after {
+                content: '';
+                position: absolute;
+                bottom: -15px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-width: 8px;
+                border-style: solid;
+                border-color: white transparent transparent transparent;
+            }
+
+            @keyframes bubble-fade-in {
+                0% {
+                    opacity: 0;
+                    transform: translateY(20px) translateX(50%);
+                }
+
+                100% {
+                    opacity: 1;
+                    transform: translateY(0) translateX(50%);
+                }
+            }
+
+            .charge-aura {
+                position: absolute;
+                top: -20px;
+                left: -20px;
+                right: -20px;
+                bottom: -20px;
+                background: radial-gradient(circle, rgba(0, 255, 255, 0.4) 0%, rgba(0, 255, 255, 0) 70%);
+                border-radius: 50%;
+                animation: aura-pulse 0.5s infinite alternate;
+                z-index: -1;
+            }
+
+            @keyframes aura-pulse {
+                from {
+                    transform: scale(1);
+                    opacity: 0.5;
+                }
+
+                to {
+                    transform: scale(1.4);
+                    opacity: 0.8;
+                }
+            }
+
+            .screen-flash {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: white;
+                z-index: 99999;
+                pointer-events: none;
+                animation: flash-anim 0.5s ease-out forwards;
+            }
+
+            @keyframes flash-anim {
+                100% {
+                    opacity: 0;
+                }
+            }
+
+            @keyframes portal-swirl {
+                0% {
+                    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+                }
+
+                50% {
+                    transform: translate(-50%, -50%) rotate(180deg) scale(1.1);
+                }
+
+                100% {
+                    transform: translate(-50%, -50%) rotate(360deg) scale(1);
+                }
+            }
+
+            .portal-effect {
+                background: radial-gradient(circle, rgba(255, 150, 255, 0.6) 0%, rgba(150, 0, 255, 0.3) 50%, transparent 70%);
+                border-radius: 50%;
+                filter: blur(8px);
+                animation: portal-swirl 4s infinite linear;
+                z-index: 9;
+            }
+
+            .portal-animation {
+                animation: portal-bounce 2s infinite ease-in-out;
+                z-index: 10;
+            }
+
+            @keyframes portal-bounce {
+
+                0%,
+                100% {
+                    transform: translate(-50%, -50%) translateY(0);
+                }
+
+                50% {
+                    transform: translate(-50%, -50%) translateY(-10px);
+                }
+            }
+
+            .world-bubble {
+                position: absolute;
+                background: white;
+                border: 3px solid #000;
+                border-radius: 12px;
+                padding: 10px 15px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+                z-index: 1000;
+                font-family: 'Press Start 2P', cursive;
+                font-size: 10px;
+                color: black;
+                pointer-events: none;
+                animation: world-bubble-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                max-width: 250px;
+            }
+
+            .world-bubble::after {
+                content: '';
+                position: absolute;
+                bottom: -12px;
+                left: 20px;
+                border-width: 6px;
+                border-style: solid;
+                border-color: white transparent transparent transparent;
+            }
+
+            .chat-head {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                border: 2px solid #000;
+                background-size: 150%;
+                background-position: center 20%;
+                background-repeat: no-repeat;
+                background-color: #eee;
+                flex-shrink: 0;
+            }
+
+            .bubble-text {
+                line-height: 1.4;
+                word-wrap: break-word;
+            }
+
+            @keyframes world-bubble-pop {
+                0% {
+                    transform: scale(0.5) translateY(20px);
+                    opacity: 0;
+                }
+
+                100% {
+                    transform: scale(1) translateY(0);
+                    opacity: 1;
+                }
+            }
+        </style>
+
+        <!-- Dialogue Box -->
+        <div id="dialogue-container" style="display: none;">
+            <div id="dialogue-text"></div>
+            <div id="dialogue-arrow">▼</div>
+        </div>
+
+        <!-- Debug Canvas -->
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <script src="scripts/game.js"></script>
+</body>
+
+</html>
